@@ -8,9 +8,13 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"],
   },
   server: {
     port: 5173,
     strictPort: false,
+  },
+  optimizeDeps: {
+    include: ["recharts"],
   },
 })

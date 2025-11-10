@@ -170,9 +170,9 @@ def trainModel(historical_data, horizon, ticker='AAPL', weights_path=None):
     for key, value in model_info.items():
         print(f"   {key}: {value}")
 
-    print("\n🧠 Forecast Sample (first 5 days):")
+    print("\n[INFO] Forecast Sample (first 5 days):")
     print(forecast_df.head())
 
-    print(f"\n💾 Saved forecast to MongoDB with ID: {recordLSTM.id}")
+    print(f"\n[SAVED] Forecast saved to MongoDB with ID: {recordLSTM.id}")
     print("==============================\n")   
     return forecast_df, model_info , recordLSTM

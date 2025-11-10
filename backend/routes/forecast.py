@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 from backend.services.data_fetcher import fetch
-from backend.services.varModel import trainModel as trainVARModel
+# from backend.services.varModel import trainModel as trainVARModel  # VAR model not yet implemented
 from backend.services.lstmModel import trainModel as trainLSTMModel
+from backend.services.forecast_evaluator import get_forecast_with_errors, evaluate_forecast_against_actual
 from backend.models.forecast import Forecast
 
 forecast_bp = Blueprint("forecast", __name__)
@@ -38,7 +39,7 @@ def retrain_lstm_job(tickerName, horizon, weights_path):
         lstm_model=recordLSTM
     )
     forecast_entry.save()
-    print(f"✅ Retrained LSTM and saved new forecast for {tickerName}")
+    print(f"[OK] Retrained LSTM and saved new forecast for {tickerName}")
 
 
 @forecast_bp.route("/api/forecast/start", methods=["POST"])
@@ -92,7 +93,7 @@ def start_fetching():
             job_id = f"retrain_{tickerName}_{model_name}"
             
             run_date = datetime.fromisoformat(scheduledTime.replace("Z", "+00:00"))
-            print(f"⏱ About to schedule retraining job for {tickerName} at {run_date}") 
+            print(f"[SCHEDULE] About to schedule retraining job for {tickerName} at {run_date}") 
 
             if scheduler.get_job(job_id):
                 scheduler.remove_job(job_id)
@@ -104,7 +105,7 @@ def start_fetching():
                 run_date=run_date,
                 args=[tickerName, horizon, weights_path]
             )
-            print(f"🗓 Scheduled retraining for {tickerName} at {run_date}")
+            print(f"[SCHEDULED] Retraining scheduled for {tickerName} at {run_date}")
 
         return jsonify({
             "success": True,
@@ -120,4 +121,59 @@ def start_fetching():
         return jsonify({
             "success": False,
             "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@forecast_bp.route("/api/forecast/evaluate", methods=["GET"])
+def evaluate_forecast():
+    """Get forecast data with error overlays for candlestick visualization"""
+    try:
+        ticker = request.args.get("ticker")
+        forecast_id = request.args.get("forecast_id")
+        
+        if not ticker and not forecast_id:
+            return jsonify({
+                "success": False,
+                "message": "Either ticker or forecast_id is required"
+            }), 400
+        
+        result = get_forecast_with_errors(ticker, forecast_id)
+        
+        if result.get("success"):
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error evaluating forecast: {str(e)}"
+        }), 500
+
+
+@forecast_bp.route("/api/forecast/update-evaluation", methods=["POST"])
+def update_evaluation():
+    """Update forecast evaluation with latest actual prices"""
+    try:
+        data = request.get_json() or {}
+        ticker = data.get("ticker")
+        forecast_id = data.get("forecast_id")
+        
+        if not ticker and not forecast_id:
+            return jsonify({
+                "success": False,
+                "message": "Either ticker or forecast_id is required"
+            }), 400
+        
+        result = evaluate_forecast_against_actual(ticker, forecast_id)
+        
+        if result.get("success"):
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error updating evaluation: {str(e)}"
         }), 500
