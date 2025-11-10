@@ -67,7 +67,7 @@ def trainModel(historical_data, horizon, ticker='AAPL', weights_path=None):
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(df.values)
 
-    train_size = int(len(scaled_data) * 0.8)
+    train_size = int(len(scaled_data) * 0.8) # here send the remaning data to test script
     train_data = scaled_data[:train_size]
     test_data = scaled_data[train_size:]
 

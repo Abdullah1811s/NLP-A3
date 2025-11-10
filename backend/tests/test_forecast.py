@@ -8,6 +8,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app 
 
+
+#u might need to change this 
 sample_hist_data = [
     {"Date": "2025-10-01", "Close": 150},
     {"Date": "2025-10-02", "Close": 152},
